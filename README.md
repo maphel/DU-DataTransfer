@@ -1,6 +1,6 @@
 # EchoCast
 
-EchoCast is a comprehensive and advanced library specifically designed for data transmission in Dual Universe, leveraging the powerful Dual Universe API to enable seamless communication between emitter and receiver units within the game. This library serves as a critical building block for players looking to develop intricate in-game systems, automate processes, and enhance their overall gameplay experience.
+EchoCast is a library specifically designed for data transmission in Dual Universe, leveraging the powerful Dual Universe API to enable seamless communication between emitter and receiver units within the game. This library serves as a critical building block for players looking to develop intricate in-game systems, automate processes, and enhance their overall gameplay experience.
 
 Built with performance and reliability in mind, EchoCast ensures that data is transmitted efficiently and accurately, minimizing the chances of lost or corrupted information. The library is equipped with features such as error handling, queue management, and timeout control to guarantee smooth and consistent data flow between devices.
 
@@ -16,9 +16,36 @@ With EchoCast, Dual Universe enthusiasts can unlock the full potential of their 
 
 ## Usage
 
+To set up EchoCast for both Master and Slave, you will need the following components:
+
+1. A Programming Board
+2. A Databank
+3. A Receiver
+4. An Emitter
+
+Both the Master and the Slave require the same set of components, but the way they are linked to the Programming Board differs. Follow the steps below to set up the components and establish the appropriate connections.
+
+# Master Setup
+
+1. Place a Programming Board, a Databank, a Receiver, and an Emitter in close proximity to each other.
+2. Open the link creation mode.
+3. Link the Programming Board to the Databank by clicking on the Programming Board first and then on the Databank.
+4. Link the Programming Board to the Emitter in the same way.
+5. Finally, link the Programming Board to the Receiver. For the Master, the link should be established from the Programming Board to the Receiver.
+
+# Slave Setup
+
+1. Place a Programming Board, a Databank, a Receiver, and an Emitter in close proximity to each other. (~max 500-800m away from Master)
+2. Open the link creation mode.
+3. Link the Programming Board to the Databank by clicking on the Programming Board first and then on the Databank.
+4. Link the Programming Board to the Emitter in the same way.
+5. Finally, link the Programming Board to the Receiver. For the Slave, the link should be established from the Receiver to the Programming Board.
+
+By following these steps, you can ensure that the EchoCast Master and Slave components are properly set up and connected, allowing for seamless data transmission and efficient communication between devices in Dual Universe.
+
 ### Initializing
 
-To initialize EchoCast you need to create a new instance of the EchoCast class. This can be done by doing the following.
+To initialize EchoCast you need to create a new instance of the EchoCast class on your Programming Boards using `unit.start()`. This can be done by doing the following.
 
 ```lua
 master = EchoCastMaster:new()
@@ -64,4 +91,29 @@ The `addResponse` function is used to add a response to the queue. It takes the 
 The `onUpdate` function is called once per update cycle and is used to process the queue.
 
 ## Example
-tbd
+
+# Master
+```lua
+-- unit.start()
+master = EchoCastMaster:new()
+master:clearDB()
+master:addRequest("req1", "res1")
+master:onUpdate()
+unit.setTimer("update", 0.1) -- 0.1s check for updates frequency
+
+-- unit.onTimer("update")
+master:onUpdate()
+
+-- receiver.onReceived(*,*)
+master:onReceived(channel, message)
+```
+
+# Slave
+```lua
+-- unit.start()
+slave = EchoCastSlave:new()
+slave:clearDB()
+slave:addResponse("res1", "test")
+slave:onUpdate()
+unit.exit()
+```
