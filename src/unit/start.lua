@@ -1,5 +1,5 @@
 function onProgressChange(obj)
-    screen.setRenderScript(drawProgress("Receiving data on " .. obj.channel  .. "...", obj.message, obj.queueDone, obj.queueTotal))
+    screen.setRenderScript(drawProgress("Receiving data on " .. obj.channel  .. "...", obj.chunk, obj.queueDone, obj.queueTotal))
 end
 
 function onFinish(obj)
