@@ -1,7 +1,37 @@
 Util = {}
-
 local concat = table.concat
 local sFormat=string.format
+
+function Util.getUnits(isSlave)
+    local emitter, databank, receiver
+    for key, value in pairs(unit) do
+        if type(value) == "table" and type(value.export) == "table" then
+            if value.getClass then
+                if value.getClass() == "EmitterUnit" then
+                    emitter = value
+                elseif value.getClass() == "ReceiverUnit" then
+                    receiver = value
+                elseif value.getClass() == "DataBankUnit" then
+                        databank = value
+                end
+            end
+        end
+    end
+    if databank == nil then
+        system.print("No databank found")
+    end
+    if emitter == nil then
+        system.print("No emitter found")
+    end
+    if receiver == nil and not isSlave then
+        system.print("No receiver found")
+    end
+    if not (databank and emitter) or (receiver == nil and not isSlave) then
+        system.print("Deactivating PB. Please connect the given units.")
+        unit.exit()
+      end
+    return databank, emitter, receiver
+end
 
 local function internalSerialize(table, tC, t)
     t[tC] = "{"
@@ -64,75 +94,32 @@ local function internalSerialize(table, tC, t)
     return tC
 end
 
-function Util.split(str, delimiter)
-    local result = {}
-    for match in (str .. delimiter):gmatch("(.-)" .. delimiter) do
-        table.insert(result, match)
-    end
-    return result
-end
-
-function Util.splitMessage(message)
+function Util.splitMessage(message, maxLength)
     local chunks = {}
 
     local function createChunkString(index, total, content)
         return index .. "/" .. total .. "/" .. content
     end
 
-    local function calculateMaxLength(index, total)
-        local metadataLength = #tostring(index) + #tostring(total) + 2
-        return 512 - metadataLength
+    local function calculateTotalChunks(messageLength, maxLength)
+        return math.ceil(messageLength / maxLength)
     end
 
-    local totalChunks = 1
     local messageLength = #message
-    while messageLength > calculateMaxLength(totalChunks, totalChunks) * totalChunks do
-        totalChunks = totalChunks + 1
-    end
+    local totalChunks = calculateTotalChunks(messageLength, maxLength)
 
     local chunkStart = 1
     for i = 1, totalChunks do
-        local maxLength = calculateMaxLength(i, totalChunks)
         local chunkEnd = math.min(chunkStart + maxLength - 1, messageLength)
         local chunk = message:sub(chunkStart, chunkEnd)
         table.insert(chunks, createChunkString(i, totalChunks, chunk))
         chunkStart = chunkEnd + 1
     end
+
     return chunks
 end
 
-function Util.getUnits()
-    local emitter, databank, receiver
-    for key, value in pairs(unit) do
-        if type(value) == "table" and type(value.export) == "table" then
-            if value.getClass then
-                if value.getClass() == "EmitterUnit" then
-                    emitter = value
-                elseif value.getClass() == "ReceiverUnit" then
-                    receiver = value
-                elseif value.getClass() == "DataBankUnit" then
-                    databank = value
-                end
-            end
-        end
-    end
-    if databank == nil then
-        system.print("No databank found")
-    end
-    if emitter == nil then
-        system.print("No emitter found")
-    end
-    if receiver == nil then
-        system.print("No receiver found")
-    end
-    if not (databank and emitter and receiver) then
-        system.print("Shutdown because units are not available. Please connect the given units.")
-        unit.exit()
-      end
-    return databank, emitter, receiver
-end
-
-function Util:stringify(value)
+function Util.stringify(value)
     local t = {}
     local check = type(value)
 
@@ -151,17 +138,7 @@ function Util:stringify(value)
     return concat(t)
 end
 
-function Util:mergeTables(arrayOfTables)
-    local mergedTable = {}
-    for _, subTable in ipairs(arrayOfTables) do
-        for _, element in ipairs(subTable) do
-            table.insert(mergedTable, element)
-        end
-    end
-    return mergedTable
-end
-
-function Util:parse(str)
+function Util.parse(str)
     local f, err = load("return " .. str)
     if f then
         return f()

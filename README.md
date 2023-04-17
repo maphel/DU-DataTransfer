@@ -1,36 +1,67 @@
-The `Socket` class in this Lua code is responsible for sending messages across channels using emitter and receiver components. It maintains a message queue and offers various functionalities to interact with channels and messages.
+# EchoCast
 
-## Socket Class
+EchoCast is a comprehensive and advanced library specifically designed for data transmission in Dual Universe, leveraging the powerful Dual Universe API to enable seamless communication between emitter and receiver units within the game. This library serves as a critical building block for players looking to develop intricate in-game systems, automate processes, and enhance their overall gameplay experience.
 
-### Socket.new(requestChannel, responseChannel, defaultMessage)
-Creates a new Socket object with the following parameters:
-- `requestChannel`: The default channel to send requests to (default: "req").
-- `responseChannel`: The default channel to send responses to (default: "res").
-- `defaultMessage`: The default message to send when no specific message is provided (default: "msg").
+Built with performance and reliability in mind, EchoCast ensures that data is transmitted efficiently and accurately, minimizing the chances of lost or corrupted information. The library is equipped with features such as error handling, queue management, and timeout control to guarantee smooth and consistent data flow between devices.
 
-### Socket:add(channel, message, position)
-Adds a message to the queue to be sent through the specified channel.
-- `channel`: The channel to send the message through.
-- `message`: The message to send.
-- `position`: The position to insert the message in the queue ("first" or "last", default: "last").
+In addition to its core functionality, EchoCast is also highly adaptable and can be easily integrated with a wide range of in-game systems and devices. Its flexible architecture allows users to customize and extend the library's capabilities to suit their specific needs, making it an invaluable tool for both novice and expert players alike.
 
-### Socket:emit()
-Sends the next message in the queue, if any, and removes it from the queue.
-Returns `true` if the queue is empty after the message is sent, `false` otherwise.
+With EchoCast, Dual Universe enthusiasts can unlock the full potential of their in-game creations, establishing more complex and dynamic interactions between devices and systems. By providing a reliable and powerful solution for data transmission, EchoCast serves as a key component for fostering innovation, creativity, and collaboration within the Dual Universe community.
 
-### Socket:getChannels()
-Returns a table with all the available channels.
+## Features
 
-### Socket:getMessages(channels)
-Returns a sorted table with all the messages from the specified channels. If no channels are specified, messages from all channels are returned.
-- `channels`: A table with the desired channels (optional).
+- Master/Slave Architecture
+- Automated request/response system
+- Data is stored in database for persistence
 
-## Util Module
+## Usage
 
-The `Util` module provides utility functions used by the Socket class, such as:
-- `getUnits()`: Returns databank, emitter, and receiver units.
-- `loadQueue(socket)`: Loads the message queue from the databank for the given socket object.
-- `saveQueue(socket)`: Saves the message queue to the databank for the given socket object.
-- `splitMessage(message)`: Splits a message into chunks if it's too long.
-- `parse(data)`: Parses a JSON string into a Lua table.
-- `mergeTables(tables)`: Merges multiple tables into a single table.
+### Initializing
+
+To initialize EchoCast you need to create a new instance of the EchoCast class. This can be done by doing the following.
+
+```lua
+master = EchoCastMaster:new()
+slave = EchoCastSlave:new()
+```
+
+### EchoCastMaster
+
+The `EchoCastMaster` class is used to initiate requests. It has the following functions:
+
+#### addRequest
+
+The `addRequest` function is used to add a request to the queue. It takes the following parameters:
+
+- `reqChannel`: The channel to send the request on
+- `resChannel`: The channel to expect the response on
+- `addFirst` (optional): If `true` is passed then the request will be added to the front of the queue, otherwise it will be added to the back
+
+#### onUpdate
+
+The `onUpdate` function is called once per update cycle and is used to process the queue and handle timeouts.
+
+#### onReceived
+
+The `onReceived` function is called when a message is received on the specified channel. It takes the following parameters:
+
+- `channel`: The channel the message was recieved on
+- `message`: The message that was recieved
+
+### EchoCastSlave
+
+The `EchoCastSlave` class is used to respond to requests. It has the following functions:
+
+#### addResponse
+
+The `addResponse` function is used to add a response to the queue. It takes the following parameters:
+
+- `resChannel`: The channel to send the response on
+- `message`: The message to send
+
+#### onUpdate
+
+The `onUpdate` function is called once per update cycle and is used to process the queue.
+
+## Example
+tbd
