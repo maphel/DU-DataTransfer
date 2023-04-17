@@ -132,7 +132,7 @@ function onFinish(dto)
     system.print(dto.totalChunks)
 end
 
-slave = EchoCastSlave:new(onFinish, true)
+slave = EchoCastSlave:new(onFinish)
 slave:addResponse("res1", "Lorem ipsum dolor sit amet.")
 slave:onUpdate()
 unit.exit()
