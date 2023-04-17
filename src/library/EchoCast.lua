@@ -11,10 +11,11 @@ EchoCastSlave.__index = EchoCastSlave
 EchoCastMaster = setmetatable({}, EchoCast)
 EchoCastMaster.__index = EchoCastMaster
 
-function EchoCast:new(isSlave, logging)
+function EchoCast:new(isSlave, progressCallback, logging)
     local obj = {}
     setmetatable(obj, EchoCast)
     obj.database, obj.emitter, obj.receiver = Util.getUnits(isSlave)
+    obj.progressCallback = progressCallback or nil
     obj.logging = logging or false
     obj.queue = {}
     return obj
@@ -31,7 +32,7 @@ function EchoCast:log(message)
 end
 
 function EchoCastMaster:new(finishCallback, progressCallback, logging)
-    local obj = EchoCast:new(false, logging)
+    local obj = EchoCast:new(false, progressCallback, logging)
     setmetatable(obj, EchoCastMaster)
     self:log("EchoCastMaster v0.0.1 by ML")
     obj.queueDone = 0
@@ -42,7 +43,6 @@ function EchoCastMaster:new(finishCallback, progressCallback, logging)
     obj.tempData = {}
     obj.currentRequest = nil
     obj.finishCallback = finishCallback or nil
-    obj.progressCallback = progressCallback or nil
     return obj
 end
 
@@ -93,16 +93,15 @@ end
 function EchoCastMaster:onReceived(channel, message)
     local responseChannel = self.currentRequest and self.currentRequest.resChannel or nil
     if responseChannel == channel then
-        local chunkIndex, totalChunks, content = message:match("^(%d+)/(%d+)/(.*)$")
+        local chunkIndex, totalChunks, chunkData = message:match("^(%d+)/(%d+)/(.*)$")
         if chunkIndex and totalChunks then
             chunkIndex = tonumber(chunkIndex)
             totalChunks = tonumber(totalChunks)
-            local chunkData = content
             table.insert(self.tempData, chunkData)
             if chunkIndex == totalChunks then
-                self:onFinish(channel, totalChunks)
+                self:onFinish(channel, chunkData, totalChunks)
             elseif chunkIndex < totalChunks then
-                self:onProgressChanged(channel, chunkIndex, totalChunks, content)
+                self:onProgressChanged(channel, chunkIndex, totalChunks, chunkData)
             end
             self.currentRequest = nil
             self.timer = nil
@@ -112,7 +111,7 @@ function EchoCastMaster:onReceived(channel, message)
     end
 end
 
-function EchoCastMaster:onFinish(channel, totalChunks)
+function EchoCastMaster:onFinish(channel, chunk, totalChunks)
     self:log("Progress is finished on '" .. channel .. "' with " .. totalChunks .. " chunks.")
     local orderedChunks = {}
     for i = 1, totalChunks do
@@ -122,6 +121,17 @@ function EchoCastMaster:onFinish(channel, totalChunks)
     self.database.setStringValue(channel, message)
     self.tempData = {}
     self.queueDone = self.queueDone + 1
+    if self.progressCallback then
+        local dto = {
+            channel = channel,
+            chunk = chunk,
+            chunkIndex = totalChunks,
+            totalChunks = totalChunks,
+            queueTotal = self.queueTotal,
+            queueDone = self.queueDone
+        }
+        self.progressCallback(dto)
+    end
     if self.finishCallback then
         local dto = {
             channel = channel,
@@ -134,13 +144,13 @@ function EchoCastMaster:onFinish(channel, totalChunks)
     end
 end
 
-function EchoCastMaster:onProgressChanged(channel, chunkIndex, totalChunks, message)
+function EchoCastMaster:onProgressChanged(channel, chunkIndex, totalChunks, chunk)
     self:log("Progress is changing on " .. channel .. " " .. chunkIndex .. "/" .. totalChunks)
     self:addRequest(self.currentRequest.channel, channel, true)
     if self.progressCallback then
         local dto = {
             channel = channel,
-            message = message,
+            chunk = chunk,
             chunkIndex = chunkIndex,
             totalChunks = totalChunks,
             queueTotal = self.queueTotal,
@@ -150,8 +160,8 @@ function EchoCastMaster:onProgressChanged(channel, chunkIndex, totalChunks, mess
     end
 end
 
-function EchoCastSlave:new(logging)
-    local obj = EchoCast:new(true, logging)
+function EchoCastSlave:new(progressCallback, logging)
+    local obj = EchoCast:new(true, progressCallback, logging)
     setmetatable(obj, EchoCastSlave)
     self:log("EchoCastMaster v0.0.1 by ML")
     obj:loadQueue()
@@ -204,9 +214,19 @@ end
 function EchoCastSlave:processQueue()
     local currentRequest = table.remove(self.queue, 1)
     local channel, message = currentRequest:match("^(.-)|(.*)$")
+    local chunkIndex, totalChunks, chunkData = message:match("^(%d+)/(%d+)/(.*)$")
     self.emitter.send(channel, message)
     self:log("Emit on " .. channel)
     self:saveQueue()
+    if self.progressCallback then
+        local dto = {
+            channel = channel,
+            chunk = chunkData,
+            chunkIndex = chunkIndex,
+            totalChunks = totalChunks,
+        }
+        self.progressCallback(dto)
+    end
 end
 
 function EchoCastSlave:onUpdate()
