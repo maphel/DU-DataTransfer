@@ -95,13 +95,28 @@ The `onUpdate` function is called once per update cycle and is used to process t
 # Master
 ```lua
 -- unit.start()
-master = EchoCastMaster:new()
+function onProgressChange(dto)
+    system.print("Progress changed!")
+    system.print(dto.channel)
+    system.print(dto.chunk)
+    system.print(dto.chunkIndex)
+    system.print(dto.totalChunks)
+end
+
+function onFinish(dto)
+    system.print("Progress finished!")
+    system.print(dto.channel)
+    system.print(dto.message)
+    system.print(dto.chunkIndex)
+    system.print(dto.totalChunks)
+end
+
+master = EchoCastMaster:new(onFinish, onProgressChange)
 master:clearDB()
 master:addRequest("req1", "res1")
-master:onUpdate()
-unit.setTimer("update", 0.1) -- 0.1s check for updates frequency
+master:addRequest("req2", "res2")
 
--- unit.onTimer("update")
+-- system.update
 master:onUpdate()
 
 -- receiver.onReceived(*,*)
@@ -110,10 +125,15 @@ master:onReceived(channel, message)
 
 # Slave
 ```lua
--- unit.start()
-slave = EchoCastSlave:new()
-slave:clearDB()
-slave:addResponse("res1", "test")
+function onFinish(dto)
+    system.print(dto.channel)
+    system.print(dto.chunkData)
+    system.print(dto.chunkIndex)
+    system.print(dto.totalChunks)
+end
+
+slave = EchoCastSlave:new(onFinish, true)
+slave:addResponse("res1", "Lorem ipsum dolor sit amet.")
 slave:onUpdate()
 unit.exit()
 ```
